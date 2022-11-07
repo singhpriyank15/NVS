@@ -1,0 +1,8 @@
+-- update rec_modify_date in IDL
+
+with upd_data as (
+select idl.customer_id,idl.addr_status,idl.status_reason,idl.addr_type,idl.verification_status,upd.inactive,addr.isdeleted,concat('C',cast(upd.contacts_odw_id as STRING)) as hcp_odw_id,concat('CA',cast(upd.contacts_addr_odw_id as string)) as hcp_addr_odw_id,mdm_Addr_id,upd.sf_id,addr.id,addr.address_odw__c,acct.account_odw__c,addr.address_mdm_id__c from all_all_b_usa_crmods.ods_contacts_addr upd left join ph_com_p_usa_veeva.address_vod__c addr on nvl(trim(concat('CA',cast(upd.contacts_addr_odw_id as string))),'@') = nvl(trim(addr.address_odw__c),'@') left join ph_com_p_usa_veeva.account acct on acct.id = addr.account_vod__c and acct.ispersonaccount = true and acct.isdeleted=false and acct.recordtypeid='0121O000001CG6UQAW' left join all_all_b_usa_crmods.ods_contacts ods on ods.contacts_odw_id=upd.contacts_odw_id left join (select customer_id,addr_id,status_reason,addr_status,addr_type,verification_status from all_all_e_gbl_customer.idl_mdm_address  where upper(addr_type) ='HCP') idl on idl.customer_id=ods.mdm_party_id  and idl.addr_id=upd.mdm_Addr_id where upper(upd.inactive)='TRUE' and upd.sf_id is  null and upd.mdm_Addr_id is not null),pobox as (select addr_id,customer_id from ALL_ALL_E_GBL_CUSTOMER.idl_mdm_address_type jkl where trim(upper(jkl.addr_type)) ='PO BOX' and jkl.status='A'),final_data as (
+select upd.* from  upd_data upd left anti join pobox po on trim(po.addr_id) = trim(upd.mdm_Addr_id) and trim(po.customer_id)=trim(upd.customer_id))
+
+select customer_id,addr_id from final_data where addr_status ='A' and status_reason is NULL)
+
